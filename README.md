@@ -1,184 +1,140 @@
-
-# Book Catalog Microservices Lab - Refactoring to Microservices
+# Spring Cloud API Gateway Lab
 
 ## Overview
-This lab demonstrates the conversion of a monolithic Book Catalog application to a microservices architecture using Spring Cloud components. The system includes:
-
-- **Service Discovery**: Eureka Server for dynamic service registration and discovery
-- **Config Service**: Centralized configuration management
-- **Book Service**: Core book catalog functionality
-- **User Service**: User management and authentication
-- **Analytics Service**: Processing and analyzing system events
-- **Event-Driven Communication**: Using Apache Kafka for asynchronous messaging
-
-## Architecture Diagram
-```
-┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
-│                 │     │                 │     │                 │
-│  Discovery      │     │  Config         │     │  PostgreSQL     │
-│  (Eureka Server)│     │  Service        │     │  Databases      │
-│                 │     │                 │     │                 │
-└────────┬────────┘     └────────┬────────┘     └────────┬────────┘
-         │                       │                       │
-         │                       │                       │
-┌────────▼────────┐     ┌────────▼────────┐     ┌────────▼────────┐
-│                 │     │                 │     │                 │
-│  User Service   │◄────┤  Book Service   │     │  Kafka          │
-│                 │     │                 │     │  (Event Broker) │
-└────────┬────────┘     └────────┬────────┘     └────────┬────────┘
-         │                       │                       │
-         │                       │                       │
-┌────────▼────────┐     ┌────────▼────────┐     ┌────────▼────────┐
-│                 │     │                 │     │                 │
-│  Analytics      │     │  API Gateway    │     │  Client         │
-│  Service        │     │  (Future)       │     │  Applications   │
-│                 │     │                 │     │                 │
-└─────────────────┘     └─────────────────┘     └─────────────────┘
-```
-
-## Services
-
-### 1. Discovery Service (Eureka Server)
-- **Port**: 8761
-- **Dashboard**: http://localhost:8761
-- **Role**: Service registry and discovery server
-
-### 2. Config Service
-- **Port**: 8888
-- **Role**: Centralized configuration management using Git backend
-- **Config Repository**: `~/config-repo`
-
-### 3. Book Service
-- **Port**: 8081
-- **Endpoints**:
-  - `GET /api/books` - List all books
-  - `GET /api/books/{id}` - Get book by ID
-  - `GET /api/books/user/{userId}` - Get books by user
-  - `POST /api/books` - Create new book
-  - `PUT /api/books/{id}` - Update book
-  - `DELETE /api/books/{id}` - Delete book
-- **Database**: PostgreSQL `bookdb`
-
-### 4. User Service
-- **Port**: 8082
-- **Endpoints**:
-  - `GET /api/users` - List all users
-  - `GET /api/users/{id}` - Get user by ID
-  - `GET /api/users/username/{username}` - Get user by username
-  - `POST /api/users` - Create new user
-  - `PUT /api/users/{id}` - Update user
-  - `DELETE /api/users/{id}` - Delete user
-- **Database**: PostgreSQL `userdb`
-
-### 5. Analytics Service
-- **Port**: 8083
-- **Endpoints**:
-  - `GET /api/analytics/summary` - Get analytics summary
-- **Role**: Processes book and user events from Kafka
+This lab demonstrates the implementation of an API Gateway using Spring Cloud Gateway in a microservices architecture. The setup includes:
+- A Eureka service registry
+- Two sample microservices (product-service and order-service)
+- An API Gateway that routes requests to the appropriate services
 
 ## Prerequisites
-- Java 17+
+- Java 17 or higher
 - Maven
-- Docker
-- Docker Compose
-- IDE (IntelliJ, Eclipse, or VS Code)
+- IDE (IntelliJ IDEA, Eclipse, or VS Code)
+- Basic knowledge of Spring Boot
 
-## Setup Instructions
+## Project Structure
+spring-cloud-gateway-lab/
+├── api-gateway/             # API Gateway service
+├── eureka-server/           # Service discovery server
+├── product-service/         # Sample product microservice
+└── order-service/           # Sample order microservice
 
-1. **Clone the repository** (if applicable)
-2. **Initialize the infrastructure**:
-   ```bash
-   docker-compose up -d
-   ```
-3. **Initialize the config repository**:
-   ```bash
-   mkdir -p ~/config-repo
-   cd ~/config-repo
-   git init
-   # Add configuration files as shown in the lab
-   git add .
-   git commit -m "Initial configuration"
-   ```
-4. **Build the parent project**:
-   ```bash
-   mvn clean install
-   ```
-5. **Start services in order**:
-   - Discovery Service
-   - Config Service
-   - User Service
-   - Book Service
-   - Analytics Service
+## Getting Started
 
-## Testing the Services
+### 1. Start the Services
+Run the services in the following order:
 
-### Create a User
-```bash
-curl -X POST http://localhost:8082/api/users   -H "Content-Type: application/json"   -d '{"username":"john_doe","email":"john@example.com","password":"password123"}'
-```
+1. **Eureka Server**:
+   cd eureka-server
+   mvn spring-boot:run
 
-### Create a Book
-```bash
-curl -X POST http://localhost:8081/api/books   -H "Content-Type: application/json"   -d '{"title":"Spring Microservices in Action","author":"John Carnell","isbn":"9781617293986","price":49.99,"userId":1}'
-```
+2. **Product Service**:
+   cd product-service
+   mvn spring-boot:run
 
-### Get Books
-```bash
-# Get all books
-curl http://localhost:8081/api/books
+3. **Order Service**:
+   cd order-service
+   mvn spring-boot:run
 
-# Get books by user
-curl http://localhost:8081/api/books/user/1
-```
+4. **API Gateway**:
+   cd api-gateway
+   mvn spring-boot:run
 
-### Check Analytics
-```bash
-curl http://localhost:8083/api/analytics/summary
-```
+### 2. Verify Services Registration
+Check the Eureka dashboard at:  
+http://localhost:8761
 
-### View Service Registry
-Open a browser and navigate to: http://localhost:8761
+You should see all three services (api-gateway, product-service, order-service) registered.
+
+## Testing the API Gateway
+
+### Direct Service Access
+- Product Service: http://localhost:8081/products
+- Order Service: http://localhost:8082/orders
+
+### Through API Gateway
+- Product Service via Gateway: http://localhost:8080/api/products
+- Order Service via Gateway: http://localhost:8080/api/orders
+
+### Specific Resources
+- Get product by ID: http://localhost:8080/api/products/1
+- Get order by ID: http://localhost:8080/api/orders/2
 
 ## Key Features Implemented
 
-1. **Service Discovery**: Automatic registration and discovery of services
-2. **Centralized Configuration**: Shared configuration managed in Git
-3. **Inter-Service Communication**:
-   - Synchronous: REST with Feign clients
-   - Asynchronous: Event-driven with Kafka
-4. **Domain Separation**:
-   - Book management
-   - User management
-   - Analytics processing
-5. **Event Sourcing**: Tracking all changes to books and users
+1. **Service Discovery Integration**:
+   - Automatic registration with Eureka
+   - Dynamic routing using service IDs
+
+2. **Routing Configuration**:
+   - Path-based routing to different services
+   - Both property-based and programmatic route configuration
+
+3. **Filters**:
+   - Global logging filter that adds request headers
+   - StripPrefix filter to modify request paths
+
+4. **Advanced Features (Optional)**:
+   - Rate limiting
+   - Circuit breaking with fallback
+   - Load balancing
+
+## Lab Exercises
+
+### Basic Exercise
+Add a new microservice (e.g., user-service) and configure the API Gateway to route to it.
+
+### Intermediate Exercise
+Implement a custom filter that adds authentication headers to certain routes.
+
+### Advanced Exercise
+Implement a rate limiter and circuit breaker for all routes and test their behavior under high load or when services are down.
+
+## Configuration Highlights
+
+### API Gateway Properties
+spring.cloud.gateway.discovery.locator.enabled=true  
+spring.cloud.gateway.discovery.locator.lower-case-service-id=true  
+
+spring.cloud.gateway.routes[0].id=product-service  
+spring.cloud.gateway.routes[0].uri=lb://product-service  
+spring.cloud.gateway.routes[0].predicates[0]=Path=/api/products/**  
+spring.cloud.gateway.routes[0].filters[0]=StripPrefix=1  
+
+### Custom Global Filter
+@Component  
+public class LoggingFilter implements GlobalFilter {  
+    @Override  
+    public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {  
+        System.out.println("Path requested: " + exchange.getRequest().getPath());  
+        return chain.filter(exchange.mutate()  
+            .request(exchange.getRequest()  
+                .mutate()  
+                .header("X-Request-Time", LocalDateTime.now().toString())  
+                .build())  
+            .build());  
+    }  
+}
 
 ## Discussion Questions
 
-1. How does service discovery simplify microservice architecture compared to hard-coded URLs?
-2. What are the benefits of centralized configuration in a microservices environment?
-3. How does event-driven communication improve system resilience?
-4. What challenges might arise when managing transactions across multiple services?
-5. How would you handle schema evolution for events in Kafka?
+1. How does API Gateway simplify client interactions in a microservices architecture?  
+2. What are the advantages and potential drawbacks of using an API Gateway?  
+3. How does Spring Cloud API Gateway compare to other API Gateway solutions?  
+4. When would you choose property-based vs programmatic route configuration?  
+5. How would you secure your API Gateway in production?
 
 ## Troubleshooting
 
-- **Services not registering with Eureka**: Check logs for connectivity issues
-- **Configuration not loading**: Verify the config repository is properly initialized
-- **Kafka connectivity issues**: Ensure Docker containers are running
-- **Database connection problems**: Check PostgreSQL logs and connection strings
+- If services don't register with Eureka:
+  - Verify Eureka server is running first
+  - Check service configuration for correct Eureka URL
+  - Ensure all services have the Eureka client dependency
 
-## Cleanup
-To stop all services and containers:
-```bash
-# Stop Spring Boot applications (Ctrl+C in each terminal)
-# Stop Docker containers
-docker-compose down
-```
+- If gateway routes don't work:
+  - Check service names match exactly
+  - Verify the gateway is registered with Eureka
+  - Examine gateway logs for routing errors
 
-## Next Steps
-Potential enhancements for this architecture:
-1. Add API Gateway (Spring Cloud Gateway)
-2. Implement Circuit Breakers (Resilience4j)
-3. Add Distributed Tracing (Sleuth/Zipkin)
-4. Implement Security (OAuth2/JWT)
-5. Containerize the microservices with Docker.
+## Clean Up
+Stop all running services with `Ctrl+C` in their respective terminal windows.
